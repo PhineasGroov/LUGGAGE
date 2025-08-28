@@ -1,4 +1,5 @@
 from sqlalchemy import Boolean, Column, Integer, String, Enum
+from sqlalchemy.orm import relationship
 from app.database.base import Base
 import enum
 
@@ -15,3 +16,6 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     role = Column(Enum(UserRole), nullable=False, default=UserRole.SENDER)
+
+    # Relationship to Travel model
+    travels = relationship("Travel", back_populates="traveler")
