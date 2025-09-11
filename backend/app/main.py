@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.database.base import Base
 from app.database.session import engine
 
@@ -16,6 +17,19 @@ app = FastAPI(
     version="0.0.1",
 )
 
+# ⭐ CONFIGURATION CORS - AJOUT IMPORTANT
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://0.0.0.0:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["*"],
+)
+
 @app.get("/")
 async def read_root():
     """
@@ -30,6 +44,5 @@ from .routers import auth, users, travels, packages
 
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
-# app.include_router(user.router, prefix="/users", tags=["Users"])
 app.include_router(packages.router, prefix="/packages", tags=["Packages"])
 app.include_router(travels.router, prefix="/travels", tags=["Travels"])
