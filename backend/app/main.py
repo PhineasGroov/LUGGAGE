@@ -5,6 +5,7 @@ from app.database.session import engine
 # Import your models here to ensure they are registered with SQLAlchemy
 from app.models.user import User
 from app.models.travel import Travel
+from app.models.package import Package
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -25,10 +26,10 @@ async def read_root():
 
 
 # According to the roadmap, you will later include routers from your modules here.
-from .routers import auth, users, travels#, package
+from .routers import auth, users, travels, packages
 
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
 # app.include_router(user.router, prefix="/users", tags=["Users"])
-# app.include_router(package.router, prefix="/packages", tags=["Packages"])
+app.include_router(packages.router, prefix="/packages", tags=["Packages"])
 app.include_router(travels.router, prefix="/travels", tags=["Travels"])

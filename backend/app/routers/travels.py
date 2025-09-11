@@ -19,7 +19,7 @@ def create_travel(
     Crée un nouveau voyage pour l'utilisateur actuellement connecté.
     L'utilisateur doit avoir le rôle 'traveler'.
     """
-    if current_user.role != user_model.UserRole.TRAVELER:
+    if getattr(current_user, "role", None) != user_model.UserRole.TRAVELER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only users with the 'traveler' role can create travels."
