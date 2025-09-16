@@ -19,3 +19,4 @@ class User(Base):
 
     # Relationship to Travel model
     travels = relationship("Travel", back_populates="traveler")
+    sent_packages = relationship("Package", back_populates="sender")
