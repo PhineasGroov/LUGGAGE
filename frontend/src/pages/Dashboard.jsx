@@ -1,10 +1,10 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import TravelerDashboard from '../components/TravelerDashboard';
 import SenderDashboard from '../components/SenderDashboard';
-import Header from '../components/Header';
+import TravelerDashboard from '../components/TravelerDashboard';
+import RoleSwitcher from '../components/RoleSwitcher';
 
-function Dashboard() {
+const Dashboard = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -17,29 +17,24 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Bienvenue, {user?.email}
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            Dashboard
           </h1>
-          <p className="text-gray-600 mt-2">
-            {user?.role === 'traveler' ? 
-              'Gérez vos voyages et acceptez des colis à transporter' : 
-              'Créez des colis et trouvez des voyageurs pour les transporter'
-            }
-          </p>
+          <RoleSwitcher />
         </div>
-
-        {/* Dashboard spécifique au rôle */}
-        {user?.role === 'traveler' ? (
-          <TravelerDashboard />
-        ) : (
-          <SenderDashboard />
-        )}
+        
+        <div className="mt-8">
+          {user?.current_role === 'sender' ? (
+            <SenderDashboard />
+          ) : (
+            <TravelerDashboard />
+          )}
+        </div>
       </div>
     </div>
   );
-}
+};
 
 export default Dashboard;

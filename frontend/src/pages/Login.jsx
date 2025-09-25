@@ -16,18 +16,23 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    setLoading(true);
 
-    const result = await login(email, password);
-    
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
-      setError(result.error);
+    try {
+      const result = await login(email, password);
+      
+      if (result.success) {
+        console.log('Login successful, redirecting to dashboard...');
+      } else {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError('Une erreur est survenue lors de la connexion');
+      console.error('Login error:', err);
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (

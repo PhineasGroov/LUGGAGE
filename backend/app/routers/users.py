@@ -42,3 +42,23 @@ def read_users_me(current_user: user_model.User = Depends(get_current_user)):
     Endpoint pour récupérer les informations de l'utilisateur connecté.
     """
     return current_user
+
+@router.patch("/switch-role", response_model=user_schema.User)
+def switch_user_role(
+    new_role: user_model.UserRole,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Permet à l'utilisateur de changer son rôle actuel.
+    """
+    if new_role == user_model.UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot switch to admin role"
+        )
+    
+    setattr(current_user, 'current_role', new_role)
+    db.commit()
+    db.refresh(current_user)
+    return current_user

@@ -22,14 +22,23 @@ api.interceptors.request.use((config) => {
 // Services d'authentification
 export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
-  login: (formData) => api.post('/auth/login', formData, {
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-  }),
+  login: (email, password) => {
+    const params = new URLSearchParams();
+    params.append('username', email);
+    params.append('password', password);
+    
+    return api.post('/auth/login', params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+  },
 };
 
 // Services utilisateur
 export const userAPI = {
   getMe: () => api.get('/users/me'),
+  switchRole: (newRole) => api.patch('/users/switch-role', null, {
+    params: { new_role: newRole }
+  }),
 };
 
 // Services voyages

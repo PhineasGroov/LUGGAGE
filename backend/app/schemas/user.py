@@ -8,13 +8,13 @@ class UserBase(BaseModel):
 # Propriétés à recevoir lors de la création d'un utilisateur
 class UserCreate(UserBase):
     password: str
-    role: UserRole = UserRole.SENDER
+    current_role: UserRole = UserRole.SENDER  # Changé de 'role' à 'current_role'
 
 # Propriétés à renvoyer au client (sans le mot de passe)
 class User(UserBase):
     id: int
     is_active: bool
-    role: UserRole
+    current_role: UserRole  # Changé de 'role' à 'current_role'
 
     class Config:
         from_attributes = True # Permet de mapper le modèle SQLAlchemy au schéma Pydantic

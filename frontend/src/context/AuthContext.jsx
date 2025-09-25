@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authAPI, userAPI } from '../services/api';
 
 const AuthContext = createContext();
 
+// ✅ Hook personnalisé exporté EN PREMIER
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -11,46 +13,45 @@ export const useAuth = () => {
   return context;
 };
 
+// ✅ Composant Provider exporté EN SECOND
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  // Vérifier si l'utilisateur est connecté au chargement
+  // Vérifier si l'utilisateur est déjà connecté au chargement
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    if (token) {
-      userAPI.getMe()
-        .then(response => {
-          setUser(response.data);
-        })
-        .catch(() => {
-          localStorage.removeItem('access_token');
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    } else {
-      setLoading(false);
+    const savedUser = localStorage.getItem('user');
+    
+    if (token && savedUser) {
+      setUser(JSON.parse(savedUser));
     }
+    setLoading(false);
   }, []);
 
   const login = async (email, password) => {
     try {
-      const formData = new URLSearchParams();
-      formData.append('username', email);
-      formData.append('password', password);
-
-      const response = await authAPI.login(formData);
-      const { access_token } = response.data;
+      const response = await authAPI.login(email, password);
+      const { access_token, token_type } = response.data;
       
+      // Stocker le token
       localStorage.setItem('access_token', access_token);
       
       // Récupérer les infos utilisateur
       const userResponse = await userAPI.getMe();
-      setUser(userResponse.data);
+      const userData = userResponse.data;
+      
+      // Stocker les données utilisateur
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      // Redirection vers le dashboard
+      navigate('/dashboard');
       
       return { success: true };
     } catch (error) {
+      console.error('Login error:', error);
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Login failed' 
@@ -60,9 +61,15 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      await authAPI.register(userData);
-      return { success: true };
+      const response = await authAPI.register(userData);
+      // Après inscription, connecter automatiquement
+      const loginData = new FormData();
+      loginData.append('username', userData.email);
+      loginData.append('password', userData.password);
+      
+      return await login(loginData);
     } catch (error) {
+      console.error('Registration error:', error);
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Registration failed' 
@@ -72,16 +79,24 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
     setUser(null);
+    navigate('/login');
+  };
+
+  const updateUser = (userData) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
   };
 
   const value = {
     user,
     login,
-    register,
     logout,
+    register,
+    updateUser,
     loading,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user
   };
 
   return (

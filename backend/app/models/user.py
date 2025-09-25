@@ -15,8 +15,8 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
-    role = Column(Enum(UserRole), nullable=False, default=UserRole.SENDER)
+    current_role = Column(Enum(UserRole), nullable=False, default=UserRole.SENDER)  # Changé de 'role' à 'current_role'
 
-    # Relationship to Travel model
+    # Relations
     travels = relationship("Travel", back_populates="traveler")
     sent_packages = relationship("Package", back_populates="sender")
