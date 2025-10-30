@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI, userAPI } from '../services/api';
+import { toast } from 'sonner';
 
 const AuthContext = createContext();
 
@@ -47,11 +48,13 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(userData));
       
       // Redirection vers le dashboard
-      navigate('/dashboard');
+      navigate('/home');
+      toast.success('Login successful!');
       
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
+      toast.error(error.response?.data?.detail || 'Login failed');
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Login failed' 
