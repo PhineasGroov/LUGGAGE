@@ -1,7 +1,15 @@
 FROM python:3.12
 
 WORKDIR /app
-COPY . .
-RUN pip install -r requirements.txt
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+# Copier d'abord requirements.txt pour profiter du cache Docker
+COPY requirements.txt .
+
+# Installer les dépendances
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copier le reste du code
+COPY . .
+
+# Mode développement avec reload automatique
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]

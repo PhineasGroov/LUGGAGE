@@ -14,5 +14,9 @@ COPY . .
 # Exposer le port
 EXPOSE 5173
 
-# Lancer en mode développement (pas de build nécessaire)
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Variables d'environnement pour Vite
+ENV HOST=0.0.0.0
+ENV PORT=5173
+
+# Lancer en mode développement
+CMD ["npm", "run", "dev"]
