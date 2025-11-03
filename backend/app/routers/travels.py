@@ -17,16 +17,7 @@ def create_travel(
 ):
     """
     Crée un nouveau voyage pour l'utilisateur actuellement connecté.
-    L'utilisateur doit être en mode 'traveler'.
     """
-    # Utilisez getattr pour éviter l'erreur de typage
-    user_role = getattr(current_user, 'current_role')
-    if user_role != user_model.UserRole.TRAVELER:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Switch to 'traveler' mode to create travels."
-        )
-    
     db_travel = travel_model.Travel(**travel.model_dump(), traveler_id=current_user.id)
     db.add(db_travel)
     db.commit()
