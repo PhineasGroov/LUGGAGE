@@ -67,6 +67,10 @@ dist/
 dist-ssr/
 *.local
 
+# Next.js
+.next/
+out/
+
 # OS
 .DS_Store
 Thumbs.db
