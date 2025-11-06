@@ -17,14 +17,7 @@ def create_package(
 ):
     """
     Crée un nouveau colis pour l'utilisateur actuellement connecté.
-    L'utilisateur doit avoir le rôle 'sender'.
     """
-    if str(current_user.role) != user_model.UserRole.SENDER.value:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only users with the 'sender' role can create packages."
-        )
-    
     db_package = package_model.Package(**package.model_dump(), sender_id=current_user.id)
     db.add(db_package)
     db.commit()

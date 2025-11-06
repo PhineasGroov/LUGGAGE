@@ -30,8 +30,7 @@ def register_user(user: user_schema.UserCreate, db: Session = Depends(get_db)):
     hashed_password = get_password_hash(user.password)
     new_user = user_model.User(
         email=user.email, 
-        hashed_password=hashed_password, 
-        current_role=user.current_role  # Changé de 'role' à 'current_role'
+        hashed_password=hashed_password
     )
     db.add(new_user)
     db.commit()
