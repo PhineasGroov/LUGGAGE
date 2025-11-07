@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Package } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import Logo from "@/components/shared/ui/Logo";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -26,14 +27,7 @@ const Header = () => {
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="bg-primary rounded-lg p-2 group-hover:bg-primary-light transition-smooth">
-              <Package className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <span className="text-xl md:text-2xl font-bold text-foreground">
-              Luggage
-            </span>
-          </Link>
+          <Logo size={32} withText />
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-1">

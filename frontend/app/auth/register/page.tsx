@@ -1,142 +1,106 @@
 'use client';
 
 import { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message, Select } from 'antd';
-import { User, Mail, Lock } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
-
-const { Title, Text } = Typography;
-const { Option } = Select;
+import Link from 'next/link';
+import { User, Mail, Lock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card } from '@/components/ui/card';
+import { authService } from '@/services';
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
 
-  const onFinish = async (values: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setLoading(true);
+    setError('');
+
+    const formData = new FormData(e.currentTarget);
+    const password = formData.get('password') as string;
+    const confirm = formData.get('confirm') as string;
+
+    if (password !== confirm) {
+      setError('Les mots de passe ne correspondent pas');
+      setLoading(false);
+      return;
+    }
+
     try {
-      await axios.post('/api/auth/register', {
-        username: values.username,
-        email: values.email,
-        password: values.password,
-        role: values.role,
+      await authService.register({
+        username: formData.get('username') as string,
+        email: formData.get('email') as string,
+        password,
+        role: formData.get('role') as string,
       });
-      
-      message.success('Compte créé avec succès ! Vous pouvez maintenant vous connecter.');
       router.push('/auth/login');
-    } catch (error: any) {
-      message.error(error.response?.data?.detail || 'Erreur lors de l\'inscription');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Erreur lors de l\'inscription');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md shadow-xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <Card className="w-full max-w-md p-8">
         <div className="text-center mb-8">
-          <Title level={2} className="mb-2!">Inscription</Title>
-          <Text type="secondary">Créez votre compte Luggage</Text>
+          <h2 className="text-2xl font-bold mb-2">Inscription</h2>
+          <p className="text-gray-600">Créez votre compte Luggage</p>
         </div>
 
-        <Form
-          name="register"
-          onFinish={onFinish}
-          layout="vertical"
-          size="large"
-        >
-          <Form.Item
-            name="username"
-            rules={[
-              { required: true, message: 'Veuillez saisir un nom d\'utilisateur' },
-              { min: 3, message: 'Minimum 3 caractères' }
-            ]}
-          >
-            <Input
-              prefix={<User className="h-4 w-4" />}
-              placeholder="Nom d'utilisateur"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="email"
-            rules={[
-              { required: true, message: 'Veuillez saisir votre email' },
-              { type: 'email', message: 'Email invalide' }
-            ]}
-          >
-            <Input
-              prefix={<Mail className="h-4 w-4" />}
-              placeholder="Email"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="password"
-            rules={[
-              { required: true, message: 'Veuillez saisir un mot de passe' },
-              { min: 6, message: 'Minimum 6 caractères' }
-            ]}
-          >
-            <Input.Password
-              prefix={<Lock className="h-4 w-4" />}
-              placeholder="Mot de passe"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="confirm"
-            dependencies={['password']}
-            rules={[
-              { required: true, message: 'Veuillez confirmer votre mot de passe' },
-              ({ getFieldValue }: any) => ({
-                validator(_: any, value: any) {
-                  if (!value || getFieldValue('password') === value) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(new Error('Les mots de passe ne correspondent pas'));
-                },
-              }),
-            ]}
-          >
-            <Input.Password
-              prefix={<Lock className="h-4 w-4" />}
-              placeholder="Confirmer le mot de passe"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="role"
-            rules={[{ required: true, message: 'Veuillez sélectionner un rôle' }]}
-          >
-            <Select placeholder="Je suis...">
-              <Option value="sender">Expéditeur (j'envoie des colis)</Option>
-              <Option value="traveler">Voyageur (je transporte des colis)</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              block
-            >
-              Créer mon compte
-            </Button>
-          </Form.Item>
-
-          <div className="text-center">
-            <Text type="secondary">
-              Déjà un compte ?{' '}
-              <Link href="/auth/login" className="text-blue-600 hover:text-blue-700">
-                Se connecter
-              </Link>
-            </Text>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="username">Nom d'utilisateur</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input id="username" name="username" className="pl-10" required minLength={3} />
+            </div>
           </div>
-        </Form>
+
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input id="email" name="email" type="email" className="pl-10" required />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="password">Mot de passe</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input id="password" name="password" type="password" className="pl-10" required minLength={6} />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="confirm">Confirmer le mot de passe</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input id="confirm" name="confirm" type="password" className="pl-10" required />
+            </div>
+          </div>
+
+        
+
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? 'Création...' : 'Créer mon compte'}
+          </Button>
+
+          <p className="text-center text-sm text-gray-600">
+            Déjà un compte ?{' '}
+            <Link href="/auth/login" className="text-blue-600 hover:underline">
+              Se connecter
+            </Link>
+          </p>
+        </form>
       </Card>
     </div>
   );

@@ -1,33 +1,49 @@
 'use client';
 
 import { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message } from 'antd';
-import { User, Lock } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
-
-const { Title, Text } = Typography;
+import Link from 'next/link';
+import { User, Lock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card } from '@/components/ui/card';
+import { authService } from '@/services';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
+  const { mutate } = useAuth();
 
-  const onFinish = async (values: { username: string; password: string }) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setLoading(true);
+    setError('');
+
+    const formData = new FormData(e.currentTarget);
+    const username = formData.get('username') as string;
+    const password = formData.get('password') as string;
+
     try {
-      const response = await axios.post('/api/auth/login', {
-        username: values.username,
-        password: values.password,
-      });
-      
-      // Stocker le token dans les cookies
+      const response = await authService.login({ username, password });
+
+      console.log('Response:', response);
+      if (!response.data.access_token) {
+        throw new Error('No access token received');
+      }
       document.cookie = `token=${response.data.access_token}; path=/; max-age=86400`;
-      
-      message.success('Connexion réussie !');
+      await mutate();
       router.push('/space/dashboard');
-    } catch (error: any) {
-      message.error(error.response?.data?.detail || 'Erreur de connexion');
+    } catch (err: any) {
+      console.log("login error", err);
+      const detail = err.response?.data?.detail;
+      setError(
+        Array.isArray(detail)
+          ? detail.map((e: any) => e.msg).join(', ')
+          : detail || 'Erreur de connexion'
+      );
     } finally {
       setLoading(false);
     }
@@ -35,58 +51,42 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md shadow-xl">
+      <Card className="w-full max-w-md p-8">
         <div className="text-center mb-8">
-          <Title level={2} className="!mb-2">Connexion</Title>
-          <Text type="secondary">Accédez à votre espace Luggage</Text>
+          <h2 className="text-2xl font-bold mb-2">Connexion</h2>
+          <p className="text-gray-600">Accédez à votre espace Luggage</p>
         </div>
 
-        <Form
-          name="login"
-          onFinish={onFinish}
-          layout="vertical"
-          size="large"
-        >
-          <Form.Item
-            name="username"
-            rules={[{ required: true, message: 'Veuillez saisir votre nom d\'utilisateur' }]}
-          >
-            <Input
-              prefix={<User className="h-4 w-4" />}
-              placeholder="Nom d'utilisateur"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: 'Veuillez saisir votre mot de passe' }]}
-          >
-            <Input.Password
-              prefix={<Lock className="h-4 w-4" />}
-              placeholder="Mot de passe"
-            />
-          </Form.Item>
-
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              block
-            >
-              Se connecter
-            </Button>
-          </Form.Item>
-
-          <div className="text-center">
-            <Text type="secondary">
-              Pas encore de compte ?{' '}
-              <Link href="/auth/register" className="text-blue-600 hover:text-blue-700">
-                S'inscrire
-              </Link>
-            </Text>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="username">Nom d'utilisateur</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input id="username" name="username" className="pl-10" required />
+            </div>
           </div>
-        </Form>
+
+          <div>
+            <Label htmlFor="password">Mot de passe</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input id="password" name="password" type="password" className="pl-10" required />
+            </div>
+          </div>
+
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? 'Connexion...' : 'Se connecter'}
+          </Button>
+
+          <p className="text-center text-sm text-gray-600">
+            Pas encore de compte ?{' '}
+            <Link href="/auth/register" className="text-blue-600 hover:underline">
+              S'inscrire
+            </Link>
+          </p>
+        </form>
       </Card>
     </div>
   );
