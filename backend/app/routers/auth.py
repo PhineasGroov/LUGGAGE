@@ -1,15 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from datetime import timedelta
+from jose import JWTError, jwt
 from app.schemas import user as user_schema
 from app.models import user as user_model
 from app.database.session import SessionLocal
-from app.core.security import get_password_hash
-from app.schemas.token import Token
-from app.database.session import SessionLocal
 from app.core.security import get_password_hash, verify_password, create_access_token
+from app.schemas.token import Token
 from app.core.config import settings
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 router = APIRouter()
 
@@ -51,3 +52,18 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
         data={"sub": user.email}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/me", response_model=user_schema.User)
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user = db.query(user_model.User).filter(user_model.User.email == email).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
