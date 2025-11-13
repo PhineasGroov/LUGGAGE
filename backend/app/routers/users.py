@@ -6,18 +6,18 @@ from jose import JWTError, jwt
 from app.schemas import user as user_schema
 from app.models import user as user_model
 from app.core.config import settings
-from app.routers.auth import get_db # Réutilisation de la dépendance get_db
+from app.database.session import get_db
 
 router = APIRouter()
 
 # Ce schéma indique à FastAPI où trouver le token (dans le header Authorization)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    """
-    Décode le token JWT pour obtenir l'utilisateur actuel.
-    C'est une dépendance qui peut être utilisée par n'importe quel endpoint sécurisé.
-    """
+def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+) -> user_model.User:
+    """Decode JWT token to get current user"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -38,7 +38,5 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 @router.get("/me", response_model=user_schema.User)
 def read_users_me(current_user: user_model.User = Depends(get_current_user)):
-    """
-    Endpoint pour récupérer les informations de l'utilisateur connecté.
-    """
+    """Get current user information"""
     return current_user

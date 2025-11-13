@@ -32,6 +32,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+async def startup_event():
+    """Initialize RLS on application startup"""
+    from app.database.rls_setup import enable_rls
+    try:
+        enable_rls()
+        print("✓ Row-Level Security enabled successfully")
+    except Exception as e:
+        print(f"⚠ RLS setup: {e}")
+
 @app.get("/")
 async def read_root():
     """
