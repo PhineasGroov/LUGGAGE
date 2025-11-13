@@ -31,7 +31,6 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
       document.cookie = 'token=; path=/; max-age=0';
-      window.location.href = '/auth/login';
     }
     return Promise.reject(error);
   }
