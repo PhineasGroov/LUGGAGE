@@ -3,15 +3,17 @@ services:
   db:
     image: postgres:17
     environment:
-      POSTGRES_USER: luggage_user
-      POSTGRES_PASSWORD: luggage_pass
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_admin_pass
       POSTGRES_DB: luggage_db
+      POSTGRES_INITDB_ARGS: "-A md5"
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U luggage_user -d luggage_db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d luggage_db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,8 +29,11 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://luggage_user:luggage_pass@db:5432/luggage_db
+      DATABASE_URL: postgresql://luggage_app:luggage_app_pass@db:5432/luggage_db
+      ADMIN_DATABASE_URL: postgresql://postgres:postgres_admin_pass@db:5432/luggage_db
       SECRET_KEY: your-secret-key-change-this-in-production-please-make-it-secure
+    command: >
+      sh -c "python migrate.py && uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/"]
       interval: 30s

@@ -4,16 +4,20 @@ from typing import List
 
 from app.schemas import package as package_schema
 from app.models import user as user_model, package as package_model, travel as travel_model
-from app.routers.auth import get_db
+from app.database.session import get_db_with_rls
 from app.routers.users import get_current_user
 
 router = APIRouter()
 
+def get_db_for_user(current_user: user_model.User = Depends(get_current_user)):
+    """Get database session with RLS context"""
+    yield from get_db_with_rls(current_user.id)
+
 @router.post("/", response_model=package_schema.Package, status_code=status.HTTP_201_CREATED)
 def create_package(
     package: package_schema.PackageCreate,
-    db: Session = Depends(get_db),
-    current_user: user_model.User = Depends(get_current_user)
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db_for_user)
 ):
     """
     Crée un nouveau colis pour l'utilisateur actuellement connecté.
@@ -25,7 +29,12 @@ def create_package(
     return db_package
 
 @router.get("/", response_model=List[package_schema.Package])
-def read_packages(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_packages(
+    skip: int = 0, 
+    limit: int = 100, 
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db_for_user)
+):
     """
     Récupère une liste de tous les colis.
     """
@@ -35,7 +44,7 @@ def read_packages(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 @router.get("/my-packages", response_model=List[package_schema.Package])
 def read_my_packages(
     current_user: user_model.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db_for_user)
 ):
     """
     Récupère les colis de l'utilisateur connecté.
@@ -49,8 +58,8 @@ def read_my_packages(
 def assign_package_to_travel(
     package_id: int,
     travel_id: int,
-    db: Session = Depends(get_db),
-    current_user: user_model.User = Depends(get_current_user)
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db_for_user)
 ):
     """
     Assigne un colis à un voyage.

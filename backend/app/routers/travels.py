@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from sqlalchemy.orm import exc as orm_exc
+from typing import List, Annotated
 
 from app.schemas import travel as travel_schema
 from app.models import user as user_model, travel as travel_model
@@ -11,7 +12,7 @@ router = APIRouter()
 
 def get_db_for_user(current_user: user_model.User = Depends(get_current_user)):
     """Get database session with RLS context"""
-    return next(get_db_with_rls(current_user.id))
+    yield from get_db_with_rls(current_user.id)
 
 @router.post("/", response_model=travel_schema.Travel, status_code=status.HTTP_201_CREATED)
 def create_travel(
@@ -71,8 +72,14 @@ def update_travel(
     for key, value in travel.model_dump().items():
         setattr(db_travel, key, value)
     
-    db.commit()
-    db.refresh(db_travel)
+    try:
+        db.commit()
+        db.refresh(db_travel)
+    except orm_exc.StaleDataError:
+        # RLS blocked the update - user doesn't own this travel
+        db.rollback()
+        raise HTTPException(status_code=403, detail="Access denied: You can only update your own travels")
+    
     return db_travel
 
 @router.delete("/{travel_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -90,5 +97,11 @@ def delete_travel(
         raise HTTPException(status_code=404, detail="Travel not found or access denied")
     
     db.delete(db_travel)
-    db.commit()
+    try:
+        db.commit()
+    except orm_exc.StaleDataError:
+        # RLS blocked the delete - user doesn't own this travel
+        db.rollback()
+        raise HTTPException(status_code=403, detail="Access denied: You can only delete your own travels")
+    
     return None

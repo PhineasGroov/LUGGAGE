@@ -34,13 +34,13 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize RLS on application startup"""
-    from app.database.rls_setup import enable_rls
-    try:
-        enable_rls()
-        print("✓ Row-Level Security enabled successfully")
-    except Exception as e:
-        print(f"⚠ RLS setup: {e}")
+    """
+    Application startup.
+    Note: Schema creation and RLS setup are now handled by migrate.py
+    The app runs with minimal privileges and cannot modify schema.
+    """
+    print("✓ LUGGAGE API started successfully")
+    print("ℹ️  Using runtime user (read/write only, no DDL privileges)")
 
 @app.get("/")
 async def read_root():

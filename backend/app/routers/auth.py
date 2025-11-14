@@ -9,18 +9,11 @@ from app.database.session import SessionLocal
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.schemas.token import Token
 from app.core.config import settings
+from app.database.session import get_db
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 router = APIRouter()
-
-# Dépendance pour obtenir la session de base de données
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 @router.post("/register", response_model=user_schema.User)
 def register_user(user: user_schema.UserCreate, db: Session = Depends(get_db)):
