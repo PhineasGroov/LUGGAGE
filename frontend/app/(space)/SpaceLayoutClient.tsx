@@ -92,7 +92,7 @@ export default function SpaceLayoutClient({
           zIndex: 1,
           width: '100%',
           background: '#fff',
-          padding: '0 24px',
+          padding: '0 2px',
           boxShadow: '0 2px 8px #f0f1f2',
           display: 'flex',
           alignItems: 'center',
@@ -116,7 +116,7 @@ export default function SpaceLayoutClient({
           </Button>
         </Dropdown>
       </Header>
-      <Content style={{ padding: '0 48px' }}>
+      <Content style={{ padding: '0 20px' }}>
         <Breadcrumb
           style={{ margin: '16px 0' }}
           items={breadcrumbItems}

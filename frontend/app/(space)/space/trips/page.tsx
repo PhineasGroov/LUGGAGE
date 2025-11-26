@@ -1,201 +1,149 @@
 'use client';
 
 import { useState } from 'react';
-import { Table, Button, Tag, Space, Modal, Form, Input, DatePicker, InputNumber, message } from 'antd';
-import { Plus, Eye, Edit, Trash } from 'lucide-react';
-import type { ColumnsType } from 'antd/es/table';
-
-interface Trip {
-  key: string;
-  id: string;
-  departure: string;
-  destination: string;
-  date: string;
-  capacity: number;
-  status: string;
-  price: number;
-}
+import { Button, Form, message, Modal } from 'antd';
+import { Plus } from 'lucide-react';
+import dayjs from 'dayjs';
+import { useMyTravels, useTravelMutations } from '@/hooks/useTravels';
+import type { Travel } from '@/types/travel.types';
+import TripsList from '@/components/space/trips/TripsList';
+import CreateTripDrawer from '@/components/space/trips/CreateTripDrawer';
+import EditTripDrawer from '@/components/space/trips/EditTripDrawer';
+import ViewTripDrawer from '@/components/space/trips/ViewTripDrawer';
 
 export default function TripsPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+  const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
+  const [selectedTrip, setSelectedTrip] = useState<Travel | null>(null);
   const [form] = Form.useForm();
+  const { travels, isLoading: loading } = useMyTravels();
+  const { createTravel, updateTravel, deleteTravel } = useTravelMutations();
 
-  // Données de démonstration
-  const trips: Trip[] = [
-    {
-      key: '1',
-      id: 'TRP-001',
-      departure: 'Paris',
-      destination: 'Lyon',
-      date: '2025-11-05',
-      capacity: 5,
-      status: 'Actif',
-      price: 25,
-    },
-    {
-      key: '2',
-      id: 'TRP-002',
-      departure: 'Marseille',
-      destination: 'Paris',
-      date: '2025-11-10',
-      capacity: 3,
-      status: 'Planifié',
-      price: 30,
-    },
-  ];
+  const handleViewTrip = (id: number) => {
+    const trip = travels.find(t => t.id === id);
+    if (trip) {
+      setSelectedTrip(trip);
+      setIsViewDrawerOpen(true);
+    }
+  };
 
-  const columns: ColumnsType<Trip> = [
-    {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-    },
-    {
-      title: 'Départ',
-      dataIndex: 'departure',
-      key: 'departure',
-    },
-    {
-      title: 'Destination',
-      dataIndex: 'destination',
-      key: 'destination',
-    },
-    {
-      title: 'Date',
-      dataIndex: 'date',
-      key: 'date',
-    },
-    {
-      title: 'Capacité',
-      dataIndex: 'capacity',
-      key: 'capacity',
-      render: (capacity) => `${capacity} kg`,
-    },
-    {
-      title: 'Prix/kg',
-      dataIndex: 'price',
-      key: 'price',
-      render: (price) => `${price} €`,
-    },
-    {
-      title: 'Statut',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => {
-        const color = status === 'Actif' ? 'green' : 'blue';
-        return <Tag color={color}>{status}</Tag>;
-      },
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (_, record) => (
-        <Space>
-          <Button icon={<Eye className="h-4 w-4" />} size="small" />
-          <Button icon={<Edit className="h-4 w-4" />} size="small" />
-          <Button icon={<Trash className="h-4 w-4" />} size="small" danger />
-        </Space>
-      ),
-    },
-  ];
+  const handleEditTrip = (id: number) => {
+    const trip = travels.find(t => t.id === id);
+    if (trip) {
+      setSelectedTrip(trip);
+      form.setFieldsValue({
+        departure: trip.origin,
+        destination: trip.destination,
+        date: dayjs(trip.travel_date),
+        capacity: trip.capacity_kg,
+      });
+      setIsEditDrawerOpen(true);
+    }
+  };
 
   const handleCreateTrip = async (values: any) => {
     try {
-      console.log('Nouveau voyage:', values);
+      await createTravel({
+        origin: values.departure,
+        destination: values.destination,
+        travel_date: values.date.format('YYYY-MM-DD'),
+        capacity_kg: values.capacity,
+      });
       message.success('Voyage créé avec succès !');
-      setIsModalOpen(false);
+      setIsCreateDrawerOpen(false);
       form.resetFields();
     } catch (error) {
       message.error('Erreur lors de la création du voyage');
     }
   };
 
+  const handleUpdateTrip = async (values: any) => {
+    if (!selectedTrip) return;
+    try {
+      await updateTravel(selectedTrip.id, {
+        origin: values.departure,
+        destination: values.destination,
+        travel_date: values.date.format('YYYY-MM-DD'),
+        capacity_kg: values.capacity,
+      });
+      message.success('Voyage modifié avec succès !');
+      setIsEditDrawerOpen(false);
+      form.resetFields();
+      setSelectedTrip(null);
+    } catch (error) {
+      message.error('Erreur lors de la modification du voyage');
+    }
+  };
+
+  const handleDeleteTrip = (id: number) => {
+    Modal.confirm({
+      title: 'Confirmer la suppression',
+      content: 'Êtes-vous sûr de vouloir supprimer ce voyage ?',
+      okText: 'Supprimer',
+      okType: 'danger',
+      cancelText: 'Annuler',
+      onOk: async () => {
+        try {
+          await deleteTravel(id);
+          message.success('Voyage supprimé avec succès !');
+        } catch (error) {
+          message.error('Erreur lors de la suppression du voyage');
+        }
+      },
+    });
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Mes Voyages</h1>
+        <h3 className="text-2xl font-bold">Mes Voyages</h3>
         <Button
           type="primary"
           icon={<Plus className="h-4 w-4" />}
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => setIsCreateDrawerOpen(true)}
         >
           Nouveau voyage
         </Button>
       </div>
 
-      <Table columns={columns} dataSource={trips} />
+      <TripsList
+        travels={travels}
+        loading={loading}
+        onView={handleViewTrip}
+        onEdit={handleEditTrip}
+        onDelete={handleDeleteTrip}
+      />
 
-      <Modal
-        title="Créer un nouveau voyage"
-        open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
-        footer={null}
-        width={600}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleCreateTrip}
-        >
-          <Form.Item
-            name="departure"
-            label="Ville de départ"
-            rules={[{ required: true, message: 'Veuillez saisir la ville de départ' }]}
-          >
-            <Input placeholder="Paris" />
-          </Form.Item>
+      <CreateTripDrawer
+        open={isCreateDrawerOpen}
+        onClose={() => {
+          setIsCreateDrawerOpen(false);
+          form.resetFields();
+        }}
+        onSubmit={handleCreateTrip}
+        form={form}
+      />
 
-          <Form.Item
-            name="destination"
-            label="Destination"
-            rules={[{ required: true, message: 'Veuillez saisir la destination' }]}
-          >
-            <Input placeholder="Lyon" />
-          </Form.Item>
+      <EditTripDrawer
+        open={isEditDrawerOpen}
+        onClose={() => {
+          setIsEditDrawerOpen(false);
+          form.resetFields();
+          setSelectedTrip(null);
+        }}
+        onSubmit={handleUpdateTrip}
+        form={form}
+      />
 
-          <Form.Item
-            name="date"
-            label="Date du voyage"
-            rules={[{ required: true, message: 'Veuillez sélectionner une date' }]}
-          >
-            <DatePicker className="w-full" format="DD/MM/YYYY" />
-          </Form.Item>
-
-          <Form.Item
-            name="capacity"
-            label="Capacité disponible (kg)"
-            rules={[{ required: true, message: 'Veuillez saisir la capacité' }]}
-          >
-            <InputNumber min={1} max={50} className="w-full" />
-          </Form.Item>
-
-          <Form.Item
-            name="price"
-            label="Prix par kg (€)"
-            rules={[{ required: true, message: 'Veuillez saisir le prix' }]}
-          >
-            <InputNumber min={1} max={100} className="w-full" />
-          </Form.Item>
-
-          <Form.Item
-            name="description"
-            label="Description"
-          >
-            <Input.TextArea rows={4} placeholder="Informations complémentaires..." />
-          </Form.Item>
-
-          <Form.Item>
-            <Space className="w-full justify-end">
-              <Button onClick={() => setIsModalOpen(false)}>
-                Annuler
-              </Button>
-              <Button type="primary" htmlType="submit">
-                Créer le voyage
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
+      <ViewTripDrawer
+        open={isViewDrawerOpen}
+        onClose={() => {
+          setIsViewDrawerOpen(false);
+          setSelectedTrip(null);
+        }}
+        travel={selectedTrip}
+      />
     </div>
   );
 }
