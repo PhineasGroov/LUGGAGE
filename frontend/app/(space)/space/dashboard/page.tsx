@@ -9,41 +9,53 @@ import {
   Plus,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useMyTravels } from '@/hooks/useTravels';
+import { useMyPackages } from '@/hooks/usePackages';
+import type { PackageStatus } from '@/types/package.types';
 
 const { Title } = Typography;
 
 export default function DashboardPage() {
-  // Données de démonstration
+  const { travels, isLoading: loadingTravels } = useMyTravels();
+  const { packages, isLoading: loadingPackages } = useMyPackages();
+  const loading = loadingTravels || loadingPackages;
+
+  // Calcul des statistiques réelles
   const stats = [
-    { title: 'Colis actifs', value: 3, icon: <Send className="h-4 w-4" />, color: '#1890ff' },
-    { title: 'Voyages en cours', value: 2, icon: <Plane className="h-4 w-4" />, color: '#52c41a' },
-    { title: 'Livraisons réussies', value: 12, icon: <CheckCircle className="h-4 w-4" />, color: '#faad14' },
-    { title: 'En attente', value: 1, icon: <Clock className="h-4 w-4" />, color: '#f5222d' },
+    { 
+      title: 'Colis actifs', 
+      value: packages.filter(p => p.status === 'pending' || p.status === 'accepted').length,
+      icon: <Send className="h-4 w-4" />, 
+      color: '#1890ff' 
+    },
+    { 
+      title: 'Voyages en cours', 
+      value: travels.filter(t => new Date(t.travel_date) > new Date()).length,
+      icon: <Plane className="h-4 w-4" />, 
+      color: '#52c41a' 
+    },
+    { 
+      title: 'Livraisons réussies', 
+      value: packages.filter(p => p.status === 'delivered').length,
+      icon: <CheckCircle className="h-4 w-4" />, 
+      color: '#faad14' 
+    },
+    { 
+      title: 'En attente', 
+      value: packages.filter(p => p.status === 'pending').length,
+      icon: <Clock className="h-4 w-4" />, 
+      color: '#f5222d' 
+    },
   ];
 
-  const recentPackages = [
-    {
-      key: '1',
-      id: 'PKG-001',
-      destination: 'Paris',
-      status: 'En transit',
-      date: '2025-10-28',
-    },
-    {
-      key: '2',
-      id: 'PKG-002',
-      destination: 'Lyon',
-      status: 'En attente',
-      date: '2025-10-30',
-    },
-    {
-      key: '3',
-      id: 'PKG-003',
-      destination: 'Marseille',
-      status: 'Livré',
-      date: '2025-10-25',
-    },
-  ];
+  // Activité récente (derniers colis)
+  const recentPackages = packages.slice(0, 5).map(pkg => ({
+    key: pkg.id.toString(),
+    id: `PKG-${pkg.id}`,
+    destination: pkg.destination || 'N/A',
+    status: pkg.status,
+    date: new Date(pkg.created_at || '').toLocaleDateString('fr-FR'),
+  }));
 
   const columns = [
     {
@@ -60,12 +72,16 @@ export default function DashboardPage() {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string) => {
-        const color =
-          status === 'Livré' ? 'green' :
-          status === 'En transit' ? 'blue' :
-          'orange';
-        return <Tag color={color}>{status}</Tag>;
+      render: (status: PackageStatus) => {
+        const statusMap = {
+          pending: { color: 'orange', text: 'En attente' },
+          accepted: { color: 'blue', text: 'Accepté' },
+          in_transit: { color: 'purple', text: 'En transit' },
+          delivered: { color: 'green', text: 'Livré' },
+          cancelled: { color: 'red', text: 'Annulé' },
+        };
+        const { color, text } = statusMap[status] || statusMap.pending;
+        return <Tag color={color}>{text}</Tag>;
       },
     },
     {
@@ -115,6 +131,7 @@ export default function DashboardPage() {
           dataSource={recentPackages}
           columns={columns}
           pagination={false}
+          loading={loading}
         />
       </Card>
 

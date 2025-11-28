@@ -19,7 +19,7 @@ export async function proxy(request: NextRequest) {
       const response = NextResponse.redirect(
         new URL("/auth/login", request.url)
       );
-      response.cookies.delete("token");
+      // response.cookies.delete("token");
       return response;
     }
 

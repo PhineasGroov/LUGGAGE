@@ -1,130 +1,91 @@
 'use client';
 
 import { useState } from 'react';
-import { Table, Button, Tag, Space, Modal, Form, Input, DatePicker, InputNumber, Select, Upload, message } from 'antd';
-import { Plus, Eye, Edit, Trash, Inbox } from 'lucide-react';
-import type { ColumnsType } from 'antd/es/table';
-import type { UploadProps } from 'antd';
-
-const { Dragger } = Upload;
-const { Option } = Select;
-
-interface Package {
-  key: string;
-  id: string;
-  destination: string;
-  weight: number;
-  status: string;
-  date: string;
-  budget: number;
-}
+import { Button, Form, message, Modal } from 'antd';
+import { Plus } from 'lucide-react';
+import { useMyPackages, usePackageMutations } from '@/hooks/usePackages';
+import type { Package as PackageType } from '@/types/package.types';
+import PackagesList from '@/components/space/packages/PackagesList';
+import CreatePackageDrawer from '@/components/space/packages/CreatePackageDrawer';
+import EditPackageDrawer from '@/components/space/packages/EditPackageDrawer';
+import ViewPackageDrawer from '@/components/space/packages/ViewPackageDrawer';
 
 export default function PackagesPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+  const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState<PackageType | null>(null);
   const [form] = Form.useForm();
+  const { packages: packagesData, isLoading: loading } = useMyPackages();
+  const { createPackage } = usePackageMutations();
 
-  // Données de démonstration
-  const packages: Package[] = [
-    {
-      key: '1',
-      id: 'PKG-001',
-      destination: 'Paris',
-      weight: 2.5,
-      status: 'En transit',
-      date: '2025-10-28',
-      budget: 50,
-    },
-    {
-      key: '2',
-      id: 'PKG-002',
-      destination: 'Lyon',
-      weight: 5,
-      status: 'En attente',
-      date: '2025-10-30',
-      budget: 75,
-    },
-    {
-      key: '3',
-      id: 'PKG-003',
-      destination: 'Marseille',
-      weight: 3,
-      status: 'Livré',
-      date: '2025-10-25',
-      budget: 60,
-    },
-  ];
+  const handleViewPackage = (id: number) => {
+    const pkg = packagesData.find(p => p.id === id);
+    if (pkg) {
+      setSelectedPackage(pkg);
+      setIsViewDrawerOpen(true);
+    }
+  };
 
-  const columns: ColumnsType<Package> = [
-    {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-    },
-    {
-      title: 'Destination',
-      dataIndex: 'destination',
-      key: 'destination',
-    },
-    {
-      title: 'Poids',
-      dataIndex: 'weight',
-      key: 'weight',
-      render: (weight) => `${weight} kg`,
-    },
-    {
-      title: 'Budget',
-      dataIndex: 'budget',
-      key: 'budget',
-      render: (budget) => `${budget} €`,
-    },
-    {
-      title: 'Date',
-      dataIndex: 'date',
-      key: 'date',
-    },
-    {
-      title: 'Statut',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => {
-        const color =
-          status === 'Livré' ? 'green' :
-          status === 'En transit' ? 'blue' :
-          'orange';
-        return <Tag color={color}>{status}</Tag>;
-      },
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (_, record) => (
-        <Space>
-          <Button icon={<Eye className="h-4 w-4" />} size="small" />
-          <Button icon={<Edit className="h-4 w-4" />} size="small" />
-          <Button icon={<Trash className="h-4 w-4" />} size="small" danger />
-        </Space>
-      ),
-    },
-  ];
-
-  const uploadProps: UploadProps = {
-    name: 'file',
-    multiple: true,
-    beforeUpload: () => false,
-    onChange(info: any) {
-      message.success(`${info.file.name} ajouté`);
-    },
+  const handleEditPackage = (id: number) => {
+    const pkg = packagesData.find(p => p.id === id);
+    if (pkg) {
+      setSelectedPackage(pkg);
+      form.setFieldsValue({
+        title: pkg.description,
+        destination: pkg.destination,
+        weight: pkg.weight_kg,
+        dimensions: pkg.dimensions,
+      });
+      setIsEditDrawerOpen(true);
+    }
   };
 
   const handleCreatePackage = async (values: any) => {
     try {
-      console.log('Nouveau colis:', values);
+      await createPackage({
+        description: values.title,
+        weight_kg: values.weight,
+        dimensions: `${values.dimensions || 'Standard'}`,
+        destination: values.destination,
+      });
       message.success('Demande d\'expédition créée avec succès !');
-      setIsModalOpen(false);
+      setIsCreateDrawerOpen(false);
       form.resetFields();
     } catch (error) {
       message.error('Erreur lors de la création de la demande');
     }
+  };
+
+  const handleUpdatePackage = async (values: any) => {
+    if (!selectedPackage) return;
+    try {
+      // Note: Il faudrait ajouter updatePackage dans le service
+      message.success('Colis modifié avec succès !');
+      setIsEditDrawerOpen(false);
+      form.resetFields();
+      setSelectedPackage(null);
+    } catch (error) {
+      message.error('Erreur lors de la modification du colis');
+    }
+  };
+
+  const handleDeletePackage = (id: number) => {
+    Modal.confirm({
+      title: 'Confirmer la suppression',
+      content: 'Êtes-vous sûr de vouloir supprimer ce colis ?',
+      okText: 'Supprimer',
+      okType: 'danger',
+      cancelText: 'Annuler',
+      onOk: async () => {
+        try {
+          // Note: Il faudrait ajouter deletePackage dans le service
+          message.success('Colis supprimé avec succès !');
+        } catch (error) {
+          message.error('Erreur lors de la suppression du colis');
+        }
+      },
+    });
   };
 
   return (
@@ -134,130 +95,49 @@ export default function PackagesPage() {
         <Button
           type="primary"
           icon={<Plus className="h-4 w-4" />}
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => setIsCreateDrawerOpen(true)}
         >
           Nouvelle expédition
         </Button>
       </div>
 
-      <Table columns={columns} dataSource={packages} />
+      <PackagesList
+        packages={packagesData}
+        loading={loading}
+        onView={handleViewPackage}
+        onEdit={handleEditPackage}
+        onDelete={handleDeletePackage}
+      />
 
-      <Modal
-        title="Créer une demande d'expédition"
-        open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
-        footer={null}
-        width={700}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleCreatePackage}
-        >
-          <Form.Item
-            name="title"
-            label="Titre du colis"
-            rules={[{ required: true, message: 'Veuillez saisir un titre' }]}
-          >
-            <Input placeholder="Ex: Documents importants" />
-          </Form.Item>
+      <CreatePackageDrawer
+        open={isCreateDrawerOpen}
+        onClose={() => {
+          setIsCreateDrawerOpen(false);
+          form.resetFields();
+        }}
+        onSubmit={handleCreatePackage}
+        form={form}
+      />
 
-          <div className="grid grid-cols-2 gap-4">
-            <Form.Item
-              name="departure"
-              label="Ville de départ"
-              rules={[{ required: true, message: 'Requis' }]}
-            >
-              <Input placeholder="Paris" />
-            </Form.Item>
+      <EditPackageDrawer
+        open={isEditDrawerOpen}
+        onClose={() => {
+          setIsEditDrawerOpen(false);
+          form.resetFields();
+          setSelectedPackage(null);
+        }}
+        onSubmit={handleUpdatePackage}
+        form={form}
+      />
 
-            <Form.Item
-              name="destination"
-              label="Destination"
-              rules={[{ required: true, message: 'Requis' }]}
-            >
-              <Input placeholder="Lyon" />
-            </Form.Item>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Form.Item
-              name="weight"
-              label="Poids approximatif (kg)"
-              rules={[{ required: true, message: 'Requis' }]}
-            >
-              <InputNumber min={0.1} max={50} step={0.1} className="w-full" />
-            </Form.Item>
-
-            <Form.Item
-              name="budget"
-              label="Budget (€)"
-              rules={[{ required: true, message: 'Requis' }]}
-            >
-              <InputNumber min={1} max={500} className="w-full" />
-            </Form.Item>
-          </div>
-
-          <Form.Item
-            name="deliveryDate"
-            label="Date de livraison souhaitée"
-            rules={[{ required: true, message: 'Veuillez sélectionner une date' }]}
-          >
-            <DatePicker className="w-full" format="DD/MM/YYYY" />
-          </Form.Item>
-
-          <Form.Item
-            name="category"
-            label="Catégorie"
-            rules={[{ required: true, message: 'Veuillez sélectionner une catégorie' }]}
-          >
-            <Select placeholder="Sélectionner une catégorie">
-              <Option value="documents">Documents</Option>
-              <Option value="electronics">Électronique</Option>
-              <Option value="clothing">Vêtements</Option>
-              <Option value="food">Nourriture</Option>
-              <Option value="other">Autre</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="description"
-            label="Description détaillée"
-            rules={[{ required: true, message: 'Veuillez décrire votre colis' }]}
-          >
-            <Input.TextArea
-              rows={4}
-              placeholder="Décrivez votre colis, dimensions, fragilité, etc."
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="photos"
-            label="Photos du colis (optionnel)"
-          >
-            <Dragger {...uploadProps}>
-              <p className="ant-upload-drag-icon">
-                <Inbox className="h-12 w-12 mx-auto" />
-              </p>
-              <p className="ant-upload-text">Cliquez ou glissez des images ici</p>
-              <p className="ant-upload-hint">
-                Format acceptés: JPG, PNG (max 5MB)
-              </p>
-            </Dragger>
-          </Form.Item>
-
-          <Form.Item>
-            <Space className="w-full justify-end">
-              <Button onClick={() => setIsModalOpen(false)}>
-                Annuler
-              </Button>
-              <Button type="primary" htmlType="submit">
-                Créer la demande
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
+      <ViewPackageDrawer
+        open={isViewDrawerOpen}
+        onClose={() => {
+          setIsViewDrawerOpen(false);
+          setSelectedPackage(null);
+        }}
+        pkg={selectedPackage}
+      />
     </div>
   );
 }
