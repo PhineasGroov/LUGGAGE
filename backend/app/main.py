@@ -40,7 +40,7 @@ async def startup_event():
     The app runs with minimal privileges and cannot modify schema.
     """
     print("✓ LUGGAGE API started successfully")
-    print("ℹ️  Using runtime user (read/write only, no DDL privileges)")
+    print("Using runtime user (read/write only, no DDL privileges)")
 
 @app.get("/")
 async def read_root():

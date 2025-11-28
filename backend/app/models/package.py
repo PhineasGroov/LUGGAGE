@@ -4,8 +4,9 @@ from app.database.base import Base
 import enum
 
 class PackageStatus(str, enum.Enum):
-    PENDING = "pending"
-    ACCEPTED = "accepted"
+    AVAILABLE = "available"  # Package created, no travel requested yet
+    PENDING = "pending"      # Sender requested a travel, waiting for traveler approval
+    ACCEPTED = "accepted"    # Traveler accepted the package
     IN_TRANSIT = "in_transit"
     DELIVERED = "delivered"
     CANCELED = "canceled"
@@ -17,7 +18,7 @@ class Package(Base):
     description = Column(String, nullable=False)
     weight_kg = Column(Float, nullable=False)
     dimensions = Column(String, nullable=False)  # e.g., "30x20
-    status = Column(Enum(PackageStatus), default=PackageStatus.PENDING, nullable=False)
+    status = Column(Enum(PackageStatus), default=PackageStatus.AVAILABLE, nullable=False)
 
     sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     travel_id = Column(Integer, ForeignKey("travels.id"), nullable=True)

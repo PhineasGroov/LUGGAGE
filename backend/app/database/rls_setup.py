@@ -66,13 +66,21 @@ def enable_rls():
             WITH CHECK (sender_id = current_setting('app.current_user_id', true)::integer);
         """))
         
-        # Policy: Senders can only update their own packages
+        # Policy: Senders can update their own packages, OR travelers can update packages assigned to their travels
+        # Note: Application layer ensures travelers only update status field
         conn.execute(text("""
             DROP POLICY IF EXISTS packages_update_policy ON packages;
             CREATE POLICY packages_update_policy ON packages
             FOR UPDATE
-            USING (sender_id = current_setting('app.current_user_id', true)::integer)
-            WITH CHECK (sender_id = current_setting('app.current_user_id', true)::integer);
+            USING (
+                sender_id = current_setting('app.current_user_id', true)::integer
+                OR
+                (travel_id IS NOT NULL AND EXISTS (
+                    SELECT 1 FROM travels 
+                    WHERE travels.id = packages.travel_id 
+                    AND travels.traveler_id = current_setting('app.current_user_id', true)::integer
+                ))
+            );
         """))
         
         # Policy: Senders can only delete their own packages
