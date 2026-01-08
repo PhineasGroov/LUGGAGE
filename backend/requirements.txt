@@ -2,6 +2,7 @@ anyio==4.9.0
 click==8.2.1
 h11==0.16.0
 httptools==0.6.4
+httpx
 idna==3.10
 psycopg2-binary==2.9.10
 python-dotenv==1.1.1
@@ -19,3 +20,5 @@ pydantic[email]
 passlib[bcrypt]
 python-jose[cryptography]
 python-multipart
+google-auth
+requests
