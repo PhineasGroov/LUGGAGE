@@ -1,4 +1,6 @@
 from pydantic import BaseModel, EmailStr
+from datetime import datetime
+from typing import Optional
 
 # Propriétés communes partagées par tous les schémas
 class UserBase(BaseModel):
@@ -8,6 +10,10 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+# Propriétés pour la connexion
+class UserLogin(UserBase):
+    password: str
+
 # Propriétés à renvoyer au client (sans le mot de passe)
 class User(UserBase):
     id: int
@@ -15,3 +21,13 @@ class User(UserBase):
 
     class Config:
         from_attributes = True # Permet de mapper le modèle SQLAlchemy au schéma Pydantic
+
+class UserResponse(UserBase):
+    id: int
+    is_active: bool
+    is_admin: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

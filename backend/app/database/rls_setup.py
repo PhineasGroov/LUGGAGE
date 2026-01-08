@@ -91,6 +91,146 @@ def enable_rls():
             USING (sender_id = current_setting('app.current_user_id', true)::integer);
         """))
         
+        # Enable RLS on travel_documents table
+        conn.execute(text("""
+            ALTER TABLE travel_documents ENABLE ROW LEVEL SECURITY;
+        """))
+        
+        # Policy: Travelers can view documents for their own travels, admins can view all
+        conn.execute(text("""
+            DROP POLICY IF EXISTS travel_documents_select_policy ON travel_documents;
+            CREATE POLICY travel_documents_select_policy ON travel_documents
+            FOR SELECT
+            USING (
+                EXISTS (
+                    SELECT 1 FROM travels 
+                    WHERE travels.id = travel_documents.travel_id 
+                    AND travels.traveler_id = current_setting('app.current_user_id', true)::integer
+                )
+                OR
+                EXISTS (
+                    SELECT 1 FROM users 
+                    WHERE users.id = current_setting('app.current_user_id', true)::integer 
+                    AND users.is_admin = true
+                )
+            );
+        """))
+        
+        # Policy: Travelers can only insert documents for their own travels
+        conn.execute(text("""
+            DROP POLICY IF EXISTS travel_documents_insert_policy ON travel_documents;
+            CREATE POLICY travel_documents_insert_policy ON travel_documents
+            FOR INSERT
+            WITH CHECK (
+                EXISTS (
+                    SELECT 1 FROM travels 
+                    WHERE travels.id = travel_documents.travel_id 
+                    AND travels.traveler_id = current_setting('app.current_user_id', true)::integer
+                )
+            );
+        """))
+        
+        # Policy: Only admins can update documents (for verification)
+        conn.execute(text("""
+            DROP POLICY IF EXISTS travel_documents_update_policy ON travel_documents;
+            CREATE POLICY travel_documents_update_policy ON travel_documents
+            FOR UPDATE
+            USING (
+                EXISTS (
+                    SELECT 1 FROM users 
+                    WHERE users.id = current_setting('app.current_user_id', true)::integer 
+                    AND users.is_admin = true
+                )
+            );
+        """))
+        
+        # Policy: Travelers can delete documents for their own travels (before verification)
+        conn.execute(text("""
+            DROP POLICY IF EXISTS travel_documents_delete_policy ON travel_documents;
+            CREATE POLICY travel_documents_delete_policy ON travel_documents
+            FOR DELETE
+            USING (
+                EXISTS (
+                    SELECT 1 FROM travels 
+                    WHERE travels.id = travel_documents.travel_id 
+                    AND travels.traveler_id = current_setting('app.current_user_id', true)::integer
+                )
+            );
+        """))
+        
+        # Enable RLS on package_requests table
+        conn.execute(text("""
+            ALTER TABLE package_requests ENABLE ROW LEVEL SECURITY;
+        """))
+        
+        # Policy: Senders and travelers can view requests for their packages/travels
+        conn.execute(text("""
+            DROP POLICY IF EXISTS package_requests_select_policy ON package_requests;
+            CREATE POLICY package_requests_select_policy ON package_requests
+            FOR SELECT
+            USING (
+                EXISTS (
+                    SELECT 1 FROM packages 
+                    WHERE packages.id = package_requests.package_id 
+                    AND packages.sender_id = current_setting('app.current_user_id', true)::integer
+                )
+                OR
+                EXISTS (
+                    SELECT 1 FROM travels 
+                    WHERE travels.id = package_requests.travel_id 
+                    AND travels.traveler_id = current_setting('app.current_user_id', true)::integer
+                )
+            );
+        """))
+        
+        # Policy: Senders can insert requests for their packages
+        conn.execute(text("""
+            DROP POLICY IF EXISTS package_requests_insert_policy ON package_requests;
+            CREATE POLICY package_requests_insert_policy ON package_requests
+            FOR INSERT
+            WITH CHECK (
+                EXISTS (
+                    SELECT 1 FROM packages 
+                    WHERE packages.id = package_requests.package_id 
+                    AND packages.sender_id = current_setting('app.current_user_id', true)::integer
+                )
+            );
+        """))
+        
+        # Policy: Senders and travelers can update requests (sender cancels, traveler accepts/rejects)
+        conn.execute(text("""
+            DROP POLICY IF EXISTS package_requests_update_policy ON package_requests;
+            CREATE POLICY package_requests_update_policy ON package_requests
+            FOR UPDATE
+            USING (
+                EXISTS (
+                    SELECT 1 FROM packages 
+                    WHERE packages.id = package_requests.package_id 
+                    AND packages.sender_id = current_setting('app.current_user_id', true)::integer
+                )
+                OR
+                EXISTS (
+                    SELECT 1 FROM travels 
+                    WHERE travels.id = package_requests.travel_id 
+                    AND travels.traveler_id = current_setting('app.current_user_id', true)::integer
+                )
+            );
+        """))
+        
+        # Policy: Senders can delete their own requests
+        conn.execute(text("""
+            DROP POLICY IF EXISTS package_requests_delete_policy ON package_requests;
+            CREATE POLICY package_requests_delete_policy ON package_requests
+            FOR DELETE
+            USING (
+                EXISTS (
+                    SELECT 1 FROM packages 
+                    WHERE packages.id = package_requests.package_id 
+                    AND packages.sender_id = current_setting('app.current_user_id', true)::integer
+                )
+            );
+        """))
+        
         conn.commit()
 
 def disable_rls():
@@ -109,5 +249,19 @@ def disable_rls():
         conn.execute(text("DROP POLICY IF EXISTS packages_update_policy ON packages;"))
         conn.execute(text("DROP POLICY IF EXISTS packages_delete_policy ON packages;"))
         conn.execute(text("ALTER TABLE packages DISABLE ROW LEVEL SECURITY;"))
+        
+        # Drop travel_documents policies
+        conn.execute(text("DROP POLICY IF EXISTS travel_documents_select_policy ON travel_documents;"))
+        conn.execute(text("DROP POLICY IF EXISTS travel_documents_insert_policy ON travel_documents;"))
+        conn.execute(text("DROP POLICY IF EXISTS travel_documents_update_policy ON travel_documents;"))
+        conn.execute(text("DROP POLICY IF EXISTS travel_documents_delete_policy ON travel_documents;"))
+        conn.execute(text("ALTER TABLE travel_documents DISABLE ROW LEVEL SECURITY;"))
+        
+        # Drop package_requests policies
+        conn.execute(text("DROP POLICY IF EXISTS package_requests_select_policy ON package_requests;"))
+        conn.execute(text("DROP POLICY IF EXISTS package_requests_insert_policy ON package_requests;"))
+        conn.execute(text("DROP POLICY IF EXISTS package_requests_update_policy ON package_requests;"))
+        conn.execute(text("DROP POLICY IF EXISTS package_requests_delete_policy ON package_requests;"))
+        conn.execute(text("ALTER TABLE package_requests DISABLE ROW LEVEL SECURITY;"))
         
         conn.commit()

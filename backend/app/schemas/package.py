@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 from app.models.package import PackageStatus
 from .user import User as UserSchema
@@ -27,6 +27,17 @@ class Package(PackageBase):
     status: PackageStatus
     sender: UserSchema
     travel: Optional[TravelSchema] = None
+
+    class Config:
+        from_attributes = True
+
+class PackageResponse(PackageBase):
+    id: int
+    sender_id: int
+    travel_id: Optional[int] = None
+    status: PackageStatus
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True

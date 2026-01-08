@@ -52,9 +52,10 @@ async def read_root():
 
 
 # According to the roadmap, you will later include routers from your modules here.
-from .routers import auth, users, travels, packages
+from .routers import auth, users, travels, packages, admin
 
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(packages.router, prefix="/packages", tags=["Packages"])
 app.include_router(travels.router, prefix="/travels", tags=["Travels"])
+app.include_router(admin.router, prefix="/admin", tags=["Admin"])

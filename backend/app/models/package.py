@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, Enum, Float, DateTime
 from sqlalchemy.orm import relationship
 from app.database.base import Base
+from datetime import datetime
 import enum
 
 class PackageStatus(str, enum.Enum):
@@ -22,6 +23,11 @@ class Package(Base):
 
     sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     travel_id = Column(Integer, ForeignKey("travels.id"), nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     sender = relationship("User", back_populates="sent_packages")
     travel = relationship("Travel", back_populates="packages")
+    travel_requests = relationship("PackageRequest", back_populates="package", cascade="all, delete-orphan")
